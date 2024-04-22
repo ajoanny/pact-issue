@@ -17,32 +17,62 @@ describe("Pact Consumer Test", () => {
     consumer: "myconsumer",
     provider: "myprovider",
     spec: SpecificationVersion.SPECIFICATION_VERSION_V3,
-    logLevel: (process.env.LOG_LEVEL as LogLevel) || "info",
+    logLevel: "debug",
   });
 
-  it("creates a pact to verify", async () => {
+  it("creates a pact to verify with json api content type", async () => {
+    const body = { data: { attributes: { name: 'name' } } };
     await pact
       .addInteraction({
-        uponReceiving: "a request for a foo",
+        uponReceiving: "a request with content type application/vnd.api+json",
         withRequest: {
-          method: "GET",
+          method: "POST",
           path: "/",
+          headers: { 'Content-Type': 'application/vnd.api+json' },
+          body,
         },
         willRespondWith: {
           status: 200,
-          body: {
-            foo: MatchersV3.like("bar"),
-          },
         },
       })
       .executeTest(async (mockserver) => {
         const res = await axios.request({
           baseURL: mockserver.url,
-          method: "GET",
+          method: "POST",
           url: "/",
+          headers: { 'Content-Type': 'application/vnd.api+json' },
+          data: body,
         });
 
-        expect(res.data.foo).to.equal("bar");
+        expect(res.status).to.equal(200);
       });
+  });
+
+  it("creates a pact to verify with content type", async () => {
+    const body = { data: { attributes: { name: 'name' } } };
+    await pact
+        .addInteraction({
+          uponReceiving: "a request with content type application/json",
+          withRequest: {
+            method: "POST",
+            path: "/",
+            headers: { 'Content-Type': 'application/json' },
+            body,
+          },
+          willRespondWith: {
+            status: 200,
+          },
+        })
+        .executeTest(async (mockserver) => {
+          const res = await axios.request({
+            baseURL: mockserver.url,
+            method: "POST",
+            url: "/",
+            headers: { 'Content-Type': 'application/json' },
+            data: body
+          });
+
+          expect(res.status).to.equal(200);
+        });
   });
 });
